@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SidebarAd from '@/components/SidebarAd';
+import { SellerBadge } from '@/components/SellerBadge';
 import JsonLdSchema from '@/components/seo/JsonLdSchema';
 
 export default function DealClient({ initialDeal }: { initialDeal: any }) {
@@ -102,7 +103,18 @@ export default function DealClient({ initialDeal }: { initialDeal: any }) {
                     )}
                   </div>
                   <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2 leading-tight">{deal.title}</h1>
-                  <p className="text-gray-400 text-lg flex items-center gap-2">Listed by <strong className="text-white">{deal.profiles?.business_name || 'Anonymous Founder'}</strong>{deal.profiles?.is_verified && <span className="text-blue-400">✓</span>}</p>
+                  
+                  {/* 🚀 NEW: Dynamic Seller Badge for Digital Assets */}
+                  <div className="mt-4 flex flex-col gap-2">
+                    <p className="text-gray-400 text-sm flex items-center gap-2">
+                      Listed by <strong className="text-white text-base">{deal.profiles?.business_name || 'Anonymous Founder'}</strong>
+                    </p>
+                    <SellerBadge 
+                      successfulSales={deal.profiles?.successful_sales || 0} 
+                      hasCategoryMonopoly={false} 
+                    />
+                  </div>
+
                 </div>
                 <div className="text-left md:text-right">
                   <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Asking Price</p>
@@ -203,12 +215,18 @@ export default function DealClient({ initialDeal }: { initialDeal: any }) {
               <div className="space-y-4">
                 <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">{deal.title}</h1>
                 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-500">Sold by</span>
-                  <span className="font-bold text-gray-900 flex items-center gap-1">
-                    {deal.profiles?.business_name || 'Verified Vendor'}
-                    {deal.profiles?.is_verified && <span className="text-blue-500 text-lg leading-none">✓</span>}
-                  </span>
+                {/* 🚀 NEW: Dynamic Seller Badge for Standard Deals */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sold by</span>
+                    <span className="font-black text-gray-900">
+                      {deal.profiles?.business_name || 'Verified Vendor'}
+                    </span>
+                  </div>
+                  <SellerBadge 
+                    successfulSales={deal.profiles?.successful_sales || 0} 
+                    hasCategoryMonopoly={false} 
+                  />
                 </div>
 
                 <div className="bg-gray-50 p-5 sm:p-6 rounded-2xl border border-gray-100 space-y-3 mt-6">

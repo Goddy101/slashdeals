@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { data: deal } = await supabase
     .from('deals')
-    .select('*, profiles(business_name)')
+    .select('*, profiles(business_name, successful_sales)')
     .eq('id', id)
     .single();
 
@@ -65,9 +65,10 @@ export default async function SingleDealPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
   
+  // 🚀 UPDATED: Fetch successful_sales instead of is_verified
   const { data: deal, error } = await supabase
     .from('deals')
-    .select('*, profiles(business_name, is_verified, created_at)')
+    .select('*, profiles(business_name, successful_sales, created_at)')
     .eq('id', id)
     .single();
 
@@ -76,7 +77,6 @@ export default async function SingleDealPage({ params }: Props) {
   // Pass the fully loaded deal into the client component
   return <DealClient initialDeal={deal} />;
 }
-
 
 
 

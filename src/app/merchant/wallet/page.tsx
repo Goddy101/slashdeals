@@ -138,7 +138,7 @@ export default function MerchantWalletPage() {
     }
   };
 
-  const handleWithdrawal = async (e: React.FormEvent) => {
+const handleWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
     setRequesting(true);
     setMessage(null);
@@ -156,10 +156,11 @@ export default function MerchantWalletPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          merchant_id: userId,
+          // Removed merchant_id (Backend reads it securely from session now)
           amount,
           bank_name: bankName,
-          account_number: accountNumber
+          account_number: accountNumber,
+          bank_code: bankCode // 🚀 ADDED: Paystack needs this to route the transfer!
         }),
       });
 
@@ -169,6 +170,7 @@ export default function MerchantWalletPage() {
         setMessage({ text: 'Withdrawal request submitted successfully! Funds will arrive within 2-4 hours.', type: 'success' });
         setWithdrawAmount('');
         setAccountNumber('');
+        // Instantly refresh the data so they see the new "Pending" transaction at the top
         fetchWalletData(); 
       } else {
         setMessage({ text: data.error, type: 'error' });

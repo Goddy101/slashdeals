@@ -35,7 +35,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // 3. Fetch Organic Feed (Page 1 - First 20 Deals)
   let feedQuery = supabase
     .from('deals')
-    .select('*, profiles(business_name, is_verified)')
+  //.select('*, profiles(business_name, is_verified)')
+    .select('*, profiles(business_name, successful_sales)')
     .eq('status', 'active')
     .range(0, 19);
 

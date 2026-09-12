@@ -3,10 +3,23 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function Navbar() {
-  const supabase = await createClient();
-  
-  // Securely check if the user is currently logged in on the server
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+
+  try {
+    const supabase = await createClient();
+    
+    // Securely check if the user is currently logged in on the server.
+    // By wrapping this in a try/catch, we ensure that if the auth cookie is 
+    // malformed or expired, it doesn't crash the entire public website.
+    const { data, error } = await supabase.auth.getUser();
+    
+    if (!error && data?.user) {
+      user = data.user;
+    }
+  } catch (error) {
+    console.error("Navbar Auth Check Failed:", error);
+    // user remains null, so the UI gracefully falls back to the "Login" state
+  }
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -16,7 +29,7 @@ export default async function Navbar() {
           {/* 1. Left Side: Brand Logo */}
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl font-black tracking-tighter text-gray-900">
-             Slash<span className="text-blue-600">Deals</span>
+              Slash<span className="text-blue-600">Deals</span>
             </span>
           </Link>
 

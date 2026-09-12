@@ -21,13 +21,12 @@ export function ApproveButton({ transactionId, amount, merchantName }: Props) {
     try {
       const res = await approveWithdrawalAction(formData);
       
-      if (!res.success) {
-        alert('❌ Transfer Failed. Please try again.');
-      } else {
+      if (res.success) {
         alert(`✅ Transfer successful! Funds sent to ${merchantName}.`);
       }
-    } catch (err) {
-      alert('Network error. Please try again.');
+    } catch (err: any) {
+      // Show the actual error thrown from the Server Action (e.g., Paystack failure)
+      alert(`❌ Error: ${err.message || 'Transfer failed. Please try again.'}`);
     } finally {
       setIsProcessing(false);
     }

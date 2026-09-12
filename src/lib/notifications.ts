@@ -11,10 +11,22 @@ interface OrderDetails {
   sellerPhone: string;
 }
 
-// 1. FREE: Admin Telegram Alert (For manual WhatsApp follow-up)
+export interface BroadcastParams {
+  title: string;
+  price: number;
+  imageUrl: string;
+  dealUrl: string;
+  isFlashBump?: boolean;
+}
+
+// ============================================================================
+// 1. PRIVATE ALERTS (To SlashDeals Admins & Merchants)
+// ============================================================================
+
+// FREE: Admin Telegram Alert (For manual WhatsApp follow-up)
 export async function sendAdminTelegramAlert(details: OrderDetails) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const chatId = process.env.TELEGRAM_CHAT_ID; // Your private admin group ID
 
   if (!token || !chatId) return;
 
@@ -46,7 +58,7 @@ export async function sendAdminTelegramAlert(details: OrderDetails) {
   }
 }
 
-// 2. FREE: Automated Email to Seller (via Resend)
+// FREE: Automated Email to Seller (via Resend)
 export async function sendSellerEmail(details: OrderDetails) {
   try {
     await resend.emails.send({
@@ -66,33 +78,12 @@ export async function sendSellerEmail(details: OrderDetails) {
   }
 }
 
-// 3. FUTURE PHASE: Automated SendChamp SMS/WhatsApp (Currently disabled to save costs)
+// FUTURE PHASE: Automated SendChamp SMS/WhatsApp (Currently disabled to save costs)
 export async function sendSellerWhatsApp_FUTURE(details: OrderDetails) {
   console.log(`[STUB] Would have sent SendChamp WhatsApp to ${details.sellerPhone}`);
-  
-  /* TO ENABLE LATER:
-  await fetch('https://api.sendchamp.com/api/v1/whatsapp/message/send', {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SENDCHAMP_API_KEY}`
-    },
-    body: JSON.stringify({
-      recipient: details.sellerPhone,
-      sender: "SlashDeals",
-      type: "template",
-      template_code: "escrow_funded_alert",
-      custom_data: {
-        amount: details.amount.toString(),
-        item: details.itemTitle
-      }
-    })
-  });
-  */
 }
 
-// 4. The Master Trigger Function (Call this from your Webhooks)
+// The Master Trigger Function for Escrow Payments
 export async function triggerEscrowFundedNotifications(details: OrderDetails) {
   // Fire them off in parallel so they don't block the webhook response time
   await Promise.all([
@@ -100,4 +91,59 @@ export async function triggerEscrowFundedNotifications(details: OrderDetails) {
     sendSellerEmail(details),
     // sendSellerWhatsApp_FUTURE(details) <-- Uncomment when you have revenue!
   ]);
+}
+
+// ============================================================================
+// 2. PUBLIC BROADCASTS (To your Public Telegram Channel)
+// ============================================================================
+
+export async function broadcastDealToTelegram({
+  title,
+  price,
+  imageUrl,
+  dealUrl,
+  isFlashBump = false,
+}: BroadcastParams) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const channelId = process.env.TELEGRAM_CHANNEL_ID; // Your public channel e.g., @slashdeals_ng
+
+  if (!botToken || !channelId) {
+    console.warn('⚠️ Telegram public channel credentials missing. Broadcast skipped.');
+    return;
+  }
+
+  const tag = isFlashBump ? '⚡ <b>FLASH BUMP</b> ⚡' : '🔥 <b>NEW DEAL DROP</b> 🔥';
+  
+  const caption = `${tag}\n\n<b>${title}</b>\n💰 <b>Price:</b> ₦${price.toLocaleString()}\n\n🔒 <i>Secured by SlashDeals Escrow.</i>`;
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: channelId,
+        photo: imageUrl,
+        caption: caption,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '🛒 View Deal & Buy Securely',
+                url: dealUrl,
+              },
+            ],
+          ],
+        },
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!data.ok) {
+      console.error('Telegram Broadcast Failed:', data.description);
+    }
+  } catch (error) {
+    console.error('Telegram Network Error:', error);
+  }
 }

@@ -1,3 +1,4 @@
+// src/app/merchant/post-asset/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -48,6 +49,7 @@ export default function PostDigitalAsset() {
 
       const isSocial = parentCategory === 'social';
       const dealPriceNum = Number(formData.deal_price);
+      const dealStatus = wantsVerification ? 'pending_review' : 'active';
 
       // Insert into database
       const { data, error: dbError } = await supabase.from('deals').insert([{
@@ -67,7 +69,7 @@ export default function PostDigitalAsset() {
         engagement_rate: isSocial ? Number(formData.engagement_rate) || 0 : 0,
 
         is_escrow_enabled: true, // ALWAYS true for digital assets
-        status: wantsVerification ? 'pending_review' : 'active',
+        status: dealStatus,
         user_id: user.id
       }]).select().single();
 
@@ -80,21 +82,40 @@ export default function PostDigitalAsset() {
         body: JSON.stringify({ listingId: data.id, eventType: 'publish' }),
       }).catch(() => {}); // Fire and forget
 
-      // ⚡ AGGRESSIVE GROWTH LEVER 2: Auto-Queue Social Post (If high-ticket and not locked for review)
-      if (!wantsVerification && dealPriceNum >= 500000) {
-        fetch('/api/webhooks/social-generator', {
+      if (dealStatus === 'active') {
+        // ⚡ AGGRESSIVE GROWTH LEVER 2: Auto-Queue Social Post (If high-ticket)
+        if (dealPriceNum >= 500000) {
+          fetch('/api/webhooks/social-generator', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event_type: 'NEW_HIGH_TICKET_LISTING',
+              listing_data: {
+                id: data.id,
+                price: dealPriceNum,
+                location_name: 'Digital Escrow Vault', 
+                category_name: isSocial ? 'Monetized Social Account' : 'Tech Startup / SaaS'
+              }
+            })
+          }).catch(() => {});
+        }
+
+        // 🚀 THE TELEGRAM BROADCAST (Only if it's active immediately)
+        const placeholderImg = isSocial 
+          ? 'https://via.placeholder.com/800x800.png?text=Premium+Social+Asset'
+          : 'https://via.placeholder.com/800x800.png?text=Premium+SaaS+Asset';
+
+        fetch('/api/telegram/broadcast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            event_type: 'NEW_HIGH_TICKET_LISTING',
-            listing_data: {
-              id: data.id,
-              price: dealPriceNum,
-              location_name: 'Digital Escrow Vault', // Digital assets are location-agnostic
-              category_name: isSocial ? 'Monetized Social Account' : 'Tech Startup / SaaS'
-            }
+            title: formData.title,
+            price: dealPriceNum,
+            imageUrl: placeholderImg,
+            dealId: data.id,
+            isFlashBump: false
           })
-        }).catch(() => {});
+        }).catch((err) => console.error("Broadcast failed:", err));
       }
 
       // Redirect based on upsell choice

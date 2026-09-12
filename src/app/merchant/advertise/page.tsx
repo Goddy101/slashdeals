@@ -19,14 +19,11 @@ export default function AdvertisePage() {
   const [imageUrl, setImageUrl] = useState('');
   const [dealLink, setDealLink] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const [isUploading, setIsUploading] = useState(false); // 🚀 Add this
+  const [isUploading, setIsUploading] = useState(false);
   
-  const supabase = createClient(); // 🚀 Add this
+  const supabase = createClient();
 
-
-
-// 🚀 The Auto-Compressing Uploader
+  // 🚀 The Auto-Compressing Uploader
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,44 +65,77 @@ export default function AdvertisePage() {
     }
   };
 
-const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // 🛡️ FRONTEND VALIDATION: Ensure the link contains a valid Deal UUID
+  const handleCheckout = async (paymentMethod: 'wallet' | 'paystack') => {
+    // 🛡️ Trigger native HTML5 validation (since we removed onSubmit)
+    const form = document.getElementById('ad-form') as HTMLFormElement;
+    if (form && !form.reportValidity()) return;
+
+    // 🛡️ FRONTEND VALIDATION
     const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
     if (!uuidRegex.test(dealLink)) {
-      alert("⚠️ Please paste a valid SlashDeals link. It must contain the Deal ID so we can route buyers correctly.");
+      alert("⚠️ Please paste a valid SlashDeals link. It must contain the Deal ID.");
+      return;
+    }
+    
+    if (!imageUrl) {
+      alert("⚠️ Please upload an ad banner image.");
       return;
     }
 
     setIsProcessing(true);
     
     try {
-      // Send the ad details to our new API route
-      const res = await fetch('/api/campaigns/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categoryId: selectedCategory.id,
-          price: selectedCategory.price,
-          headline,
-          imageUrl,
-          dealLink
-        })
-      });
+      if (paymentMethod === 'wallet') {
+        // METHOD 1: Deduct from SlashDeals Wallet
+        if (!confirm(`Deduct ₦${selectedCategory.price.toLocaleString()} from your wallet?`)) {
+          setIsProcessing(false);
+          return;
+        }
 
-      const data = await res.json();
+        const res = await fetch('/api/campaigns/wallet-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryId: selectedCategory.id,
+            price: selectedCategory.price,
+            headline, 
+            imageUrl, 
+            dealLink
+          })
+        });
 
-      // Redirect to the Paystack payment screen
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+        const data = await res.json();
+        if (data.success) {
+          alert('🎉 Monopoly Secured! Your ad is now live.');
+          window.location.href = '/merchant/dashboard'; 
+        } else {
+          alert(`❌ ${data.error}`);
+        }
       } else {
-        alert(data.error || 'Failed to initialize secure checkout.');
-        setIsProcessing(false);
+        // METHOD 2: Pay with Paystack (Credit Card / Bank Transfer)
+        const res = await fetch('/api/campaigns/paystack-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryId: selectedCategory.id,
+            price: selectedCategory.price,
+            headline, 
+            imageUrl, 
+            dealLink
+          })
+        });
+
+        const data = await res.json();
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl; // Redirect to Paystack
+        } else {
+          alert(`❌ ${data.error || 'Failed to initialize Paystack.'}`);
+        }
       }
     } catch (err) {
       console.error(err);
       alert('Network error. Please try again.');
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -126,7 +156,8 @@ const handleCheckout = async (e: React.FormEvent) => {
       <div className="grid lg:grid-cols-2 gap-12">
         {/* Left Column: The Campaign Builder */}
         <div className="space-y-8">
-          <form onSubmit={handleCheckout} className="space-y-6">
+          {/* Note the added ID to the form for reportValidity() mapping */}
+          <form id="ad-form" className="space-y-6">
             
             {/* Step 1: Category Selection */}
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -187,19 +218,6 @@ const handleCheckout = async (e: React.FormEvent) => {
                 <p className="text-xs text-gray-500 mt-1 text-right">{headline.length}/50</p>
               </div>
 
-              {/* <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Image URL (Square 1:1)</label>
-                <input 
-                  type="url" 
-                  required
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://yoursite.com/banner.png"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black outline-none"
-                />
-              </div> */}
-
-
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Ad Banner Image (Square 1:1)</label>
                 <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-black transition-colors bg-gray-50">
@@ -243,17 +261,32 @@ const handleCheckout = async (e: React.FormEvent) => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              disabled={isProcessing}
-              className="w-full bg-black text-white font-black py-4 rounded-xl hover:bg-gray-800 transition-all text-lg shadow-lg disabled:opacity-70 flex items-center justify-center gap-2"
-            >
-              {isProcessing ? 'Initializing Secure Vault...' : `Pay ₦${selectedCategory.price.toLocaleString()} & Launch`}
-              <span>🚀</span>
-            </button>
-            <p className="text-center text-sm text-gray-500 font-medium">
-              🔒 Payments secured by Paystack. Goes live instantly.
-            </p>
+            {/* Step 3: Checkout Buttons */}
+            <div className="space-y-3 pt-4">
+              <button 
+                type="button"
+                onClick={() => handleCheckout('wallet')}
+                disabled={isProcessing}
+                className="w-full bg-black text-white font-black py-4 rounded-xl hover:bg-gray-800 transition-all text-lg shadow-lg disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {isProcessing ? 'Processing...' : `Pay ₦${selectedCategory.price.toLocaleString()} with Wallet`}
+                <span>💼</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => handleCheckout('paystack')}
+                disabled={isProcessing}
+                className="w-full bg-blue-50 text-blue-600 border border-blue-200 font-bold py-4 rounded-xl hover:bg-blue-100 transition-all text-lg disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {isProcessing ? 'Connecting...' : `Pay ₦${selectedCategory.price.toLocaleString()} with Card`}
+                <span>💳</span>
+              </button>
+              
+              <p className="text-center text-sm text-gray-500 font-medium mt-2">
+                🔒 Payments secured by Paystack. Goes live instantly.
+              </p>
+            </div>
           </form>
         </div>
 
