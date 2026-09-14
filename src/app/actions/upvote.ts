@@ -3,7 +3,9 @@
 import { createClient } from '@/lib/supabase/server';
 
 export async function upvoteDealAction(dealId: string) {
-  const supabase = createClient();
+ // const supabase = createClient();
+
+  const supabase = await createClient(); // 🚀 Add await!
 
   const { data: deal, error: fetchError } = await supabase
     .from('deals')

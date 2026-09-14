@@ -1,6 +1,9 @@
 // src/app/api/cron/auto-release/route.ts
+export const dynamic = 'force-dynamic'; // Add this at the top!
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+
+
 
 // Must use Service Role to execute background system tasks
 const supabaseAdmin = createClient(

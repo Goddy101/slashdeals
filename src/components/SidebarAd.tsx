@@ -17,7 +17,9 @@ export default function SidebarAd({ category, dealOwnerId }: SidebarAdProps) {
 
   useEffect(() => {
     async function fetchAdLogic() {
-      const supabase = createClient();
+   //   const supabase = createClient();
+
+      const supabase = await createClient();
       
       // 1. RULE C: Check for Competitor Ad Protection (Premium Subscription)
       const { data: subscription } = await supabase

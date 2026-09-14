@@ -1,3 +1,4 @@
+// src/app/actions/auth.ts
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
@@ -7,7 +8,8 @@ export async function loginAction(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  const supabase = createClient();
+  // 🚀 Added await here
+  const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -25,7 +27,8 @@ export async function signUpAction(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  const supabase = createClient();
+  // 🚀 Added await here
+  const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,

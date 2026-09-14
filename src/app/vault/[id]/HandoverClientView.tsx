@@ -22,7 +22,7 @@ interface Props {
   initialMessages: DisputeMessage[];
 }
 
-export default function HandoverClientView({ 
+export default async function HandoverClientView({ 
   escrow, 
   orderOtp, 
   trackingCode, 
@@ -30,7 +30,9 @@ export default function HandoverClientView({
   isAdmin,
   initialMessages 
 }: Props) {
-  const supabase = createClient();
+ // const supabase = createClient();
+
+ const supabase = await createClient();
   
   // Countdown Timer State
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean }>({

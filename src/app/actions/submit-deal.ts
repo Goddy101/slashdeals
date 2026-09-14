@@ -12,7 +12,9 @@ export async function submitDealAction(data: DealFormData) {
     return { error: 'Invalid form data. Please check your inputs.' };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
+
+ // const supabase = createClient();
 
   // 2. See if a user is logged in (to attach their user_id)
   const { data: { user } } = await supabase.auth.getUser();

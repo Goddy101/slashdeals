@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-export default function DealSubmitForm() {
+export default async function DealSubmitForm() {
   const [loading, setLoading] = useState(false);
   const [successDeal, setSuccessDeal] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
   
-  const supabase = createClient();
+ // const supabase = createClient();
+
+ const supabase = await createClient();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
