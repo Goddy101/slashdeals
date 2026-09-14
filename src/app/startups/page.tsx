@@ -18,7 +18,7 @@ export default function DigitalAssetsMarketplace() {
     setLoading(true);
     let query = supabase
       .from('deals')
-      .select('*, profiles(business_name, is_verified)')
+      .select('*, profiles(business_name, is_verified, successful_sales)')
       .eq('status', 'active');
 
     if (assetType === 'startups') {
@@ -27,7 +27,8 @@ export default function DigitalAssetsMarketplace() {
       query = query.in('asset_type', ['social_account']);
     }
 
-    query = query.order(assetType === 'startups' ? 'monthly_revenue' : 'follower_count', { ascending: false });
+    // Default to newest if we moved from flat columns to JSONB
+    query = query.order('created_at', { ascending: false });
 
     const { data } = await query.limit(20);
     if (data) setAssets(data);
@@ -36,18 +37,30 @@ export default function DigitalAssetsMarketplace() {
 
   // 💻 Premium SaaS / Startup Card
   const StartupCard = ({ asset }: { asset: any }) => {
-    const annualRevenue = (asset.monthly_revenue || 0) * 12;
+    const metrics = asset.asset_metrics || {};
+    const mrr = metrics.mrr || asset.monthly_revenue || 0;
+    const annualRevenue = mrr * 12;
     const multiple = annualRevenue > 0 ? (asset.deal_price / annualRevenue).toFixed(1) : 'N/A';
+    
+    // Earned Trust
+    const successfulSales = asset.profiles?.successful_sales || 0;
+    const isPro = successfulSales >= 3;
 
     return (
       <Link href={`/deal/${asset.id}`} className="group relative block bg-white rounded-[24px] border border-gray-200 shadow-sm hover:shadow-2xl hover:border-blue-200 transition-all duration-500 hover:-translate-y-1 overflow-hidden">
-        {/* Subtle top gradient glow on hover */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
+        {asset.is_verified_owner && (
+          <div className="absolute top-4 right-4 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded shadow-sm z-10 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+            Verified Owner
+          </div>
+        )}
+
         <div className="p-6">
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex justify-between items-start mb-6 pr-24">
             <div className="flex gap-3 items-center">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center shadow-inner">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center shadow-inner shrink-0">
                 <span className="text-xl">💻</span>
               </div>
               <div>
@@ -65,29 +78,23 @@ export default function DigitalAssetsMarketplace() {
           <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Asking Price
               </p>
               <p className="text-xl font-black text-gray-900 tracking-tight">₦{asset.deal_price.toLocaleString()}</p>
             </div>
-            <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100 relative overflow-hidden">
-              {asset.is_verified_revenue && (
-                <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow-sm">
-                  VERIFIED
-                </div>
-              )}
-              <p className="text-[11px] font-bold text-emerald-600/70 uppercase tracking-wider mb-1">Monthly Rev</p>
+            <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100">
+              <p className="text-[11px] font-bold text-emerald-600/70 uppercase tracking-wider mb-1">Monthly Rev (MRR)</p>
               <p className="text-xl font-black text-emerald-600 tracking-tight">
-                {asset.monthly_revenue > 0 ? `₦${asset.monthly_revenue.toLocaleString()}` : 'Pre-Rev'}
+                {mrr > 0 ? `₦${mrr.toLocaleString()}` : 'Pre-Rev'}
               </p>
             </div>
           </div>
 
-          {/* Tags */}
+          {/* Dynamic Tags */}
           <div className="flex flex-wrap gap-2">
-            {asset.monthly_traffic > 0 && (
+            {metrics.users > 0 && (
               <span className="text-[11px] font-bold text-gray-600 bg-gray-100/80 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                <span className="text-gray-400">👥</span> {asset.monthly_traffic.toLocaleString()} /mo
+                <span className="text-gray-400">👥</span> {metrics.users.toLocaleString()} Users
               </span>
             )}
             {multiple !== 'N/A' && (
@@ -95,9 +102,14 @@ export default function DigitalAssetsMarketplace() {
                 <span className="text-gray-400">📈</span> {multiple}x ARR
               </span>
             )}
-            {asset.tech_stack && (
+            {metrics.tech_stack && (
               <span className="text-[11px] font-bold text-gray-600 bg-gray-100/80 px-3 py-1.5 rounded-lg truncate max-w-[140px]">
-                ⚙️ {asset.tech_stack}
+                ⚙️ {metrics.tech_stack}
+              </span>
+            )}
+            {isPro && (
+              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg">
+                ⭐ Pro Seller
               </span>
             )}
           </div>
@@ -107,7 +119,7 @@ export default function DigitalAssetsMarketplace() {
         <div className="bg-zinc-950 px-6 py-4 flex justify-between items-center group-hover:bg-black transition-colors">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-            <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">Code Escrow</span>
+            <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">5-Day Escrow Handover</span>
           </div>
           <span className="text-sm font-bold text-white group-hover:text-blue-400 flex items-center gap-1 transition-colors">
             Inspect <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
@@ -119,19 +131,34 @@ export default function DigitalAssetsMarketplace() {
 
   // 📱 Premium Social Media Card
   const SocialCard = ({ asset }: { asset: any }) => {
+    const metrics = asset.asset_metrics || {};
+    const followers = metrics.followers || asset.follower_count || 0;
+    const engagement = metrics.engagement_rate || 0;
+    
+    // Earned Trust
+    const successfulSales = asset.profiles?.successful_sales || 0;
+    const isPro = successfulSales >= 3;
+
     return (
       <Link href={`/deal/${asset.id}`} className="group relative block bg-white rounded-[24px] border border-gray-200 shadow-sm hover:shadow-2xl hover:border-pink-200 transition-all duration-500 hover:-translate-y-1 overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
+        {asset.is_verified_owner && (
+          <div className="absolute top-4 right-4 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded shadow-sm z-10 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+            Verified Owner
+          </div>
+        )}
+
         <div className="p-6">
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex justify-between items-start mb-6 pr-24">
              <div className="flex gap-3 items-center">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-100 flex items-center justify-center shadow-inner">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-100 flex items-center justify-center shadow-inner shrink-0">
                 <span className="text-xl">📱</span>
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-pink-600 mb-1 block">
-                  {asset.platform} Asset
+                  {metrics.platform || asset.platform || 'Social'} Asset
                 </span>
                 <h3 className="text-lg font-black text-gray-900 leading-tight line-clamp-1 group-hover:text-pink-600 transition-colors">
                   {asset.title}
@@ -143,7 +170,6 @@ export default function DigitalAssetsMarketplace() {
           <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Asking Price
               </p>
               <p className="text-xl font-black text-gray-900 tracking-tight">₦{asset.deal_price.toLocaleString()}</p>
@@ -151,20 +177,27 @@ export default function DigitalAssetsMarketplace() {
             <div className="bg-fuchsia-50/50 rounded-2xl p-4 border border-fuchsia-100">
               <p className="text-[11px] font-bold text-fuchsia-600/70 uppercase tracking-wider mb-1">Followers</p>
               <p className="text-xl font-black text-fuchsia-700 tracking-tight">
-                {asset.follower_count?.toLocaleString() || 0}
+                {followers.toLocaleString()}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {asset.engagement_rate > 0 && (
+            {engagement > 0 && (
               <span className="text-[11px] font-bold text-orange-700 bg-orange-50 border border-orange-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                🔥 {asset.engagement_rate}% Engagement
+                🔥 {engagement}% Engagement
               </span>
             )}
-            <span className="text-[11px] font-bold text-gray-600 bg-gray-100/80 px-3 py-1.5 rounded-lg">
-              ✨ Original Email Included
-            </span>
+            {metrics.includes_og_email && (
+              <span className="text-[11px] font-bold text-gray-600 bg-gray-100/80 px-3 py-1.5 rounded-lg">
+                ✨ Original Email Included
+              </span>
+            )}
+            {isPro && (
+              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg">
+                ⭐ Pro Seller
+              </span>
+            )}
           </div>
         </div>
         
@@ -172,7 +205,7 @@ export default function DigitalAssetsMarketplace() {
         <div className="bg-zinc-950 px-6 py-4 flex justify-between items-center group-hover:bg-black transition-colors">
            <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-            <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">48hr Secure Transfer</span>
+            <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">Secure Transfer</span>
           </div>
           <span className="text-sm font-bold text-white group-hover:text-pink-400 flex items-center gap-1 transition-colors">
             View Page <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
