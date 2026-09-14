@@ -21,7 +21,7 @@ export default function PostDealPage() {
   // Form States
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Electronics');
+  const [category, setCategory] = useState('general'); // Default matching your enum
   const [originalPrice, setOriginalPrice] = useState('');
   const [dealPrice, setDealPrice] = useState('');
   const [isEscrowEnabled, setIsEscrowEnabled] = useState(true);
@@ -44,7 +44,7 @@ export default function PostDealPage() {
       }
       setUserId(user.id);
 
-      // GUARDRAIL 1: Count successful orders to determine if we lock Escrow
+      // Count successful escrows for this seller
       const { count } = await supabase
         .from('escrows')
         .select('*', { count: 'exact', head: true })
@@ -68,7 +68,6 @@ export default function PostDealPage() {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
       
-      // Enforce max 4 images
       if (selectedFiles.length + newFiles.length > 4) {
         alert("You can only upload a maximum of 4 images.");
         return;
@@ -76,7 +75,6 @@ export default function PostDealPage() {
 
       setSelectedFiles(prev => [...prev, ...newFiles]);
 
-      // Create preview URLs
       const newPreviews = newFiles.map(file => URL.createObjectURL(file));
       setImagePreviews(prev => [...prev, ...newPreviews]);
     }
@@ -94,7 +92,6 @@ export default function PostDealPage() {
     const uploadedUrls: string[] = [];
 
     for (const file of selectedFiles) {
-      // Create a unique file name to prevent overwrites
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `deals/${fileName}`;
@@ -108,7 +105,6 @@ export default function PostDealPage() {
         throw new Error('Failed to upload one or more images.');
       }
 
-      // Get the public URL for the uploaded image
       const { data } = supabase.storage.from('deal-images').getPublicUrl(filePath);
       uploadedUrls.push(data.publicUrl);
     }
@@ -116,7 +112,6 @@ export default function PostDealPage() {
     setIsUploading(false);
     return uploadedUrls;
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,44 +124,50 @@ export default function PostDealPage() {
     setSubmitting(true);
 
     try {
-      // 1. Upload images first
+      // 1. Upload images
       const imageUrls = await uploadImagesToSupabase();
       
-      // We store the primary image in image_url (for backward compatibility), 
-      // and all images in the JSON array 'images' (if your schema supports it)
+      // 2. Map the data based on your exact schema
       const primaryImageUrl = imageUrls[0];
-
+      const additionalImages = imageUrls.slice(1); // The rest of the images
+      
       const origPrice = Number(originalPrice);
       const dPrice = Number(dealPrice);
 
-      // GUARDRAIL 2: The Price-Drop Anomaly Filter (60% Rule)
       const discountPercentage = ((origPrice - dPrice) / origPrice) * 100;
       const dealStatus = discountPercentage > 60 ? 'pending_review' : 'active';
 
-      // 2. Insert the deal into the database
+      // We use the JSONB asset_metrics column to store additional images since deals table doesn't have an images array
+      const assetMetrics = {
+        additional_images: additionalImages,
+        condition: "Physical Item" 
+      };
+
+      // 3. Insert matching exact schema
       const { data: newDeal, error } = await supabase.from('deals').insert([{
         user_id: userId,
         title,
         description,
-        category,
+        category, // MUST match the enum: tech, fashion, food, groceries, travel, finance, education, services, general
         original_price: origPrice,
         deal_price: dPrice,
         is_escrow_enabled: forceEscrow ? true : isEscrowEnabled,
         status: dealStatus,
-        image_url: primaryImageUrl, // The main cover image
-        images: imageUrls           // Array of all uploaded images
+        image_url: primaryImageUrl,
+        asset_metrics: assetMetrics,
+        deal_url: 'N/A' // Schema requires this to not be null
       }]).select('id').single();
 
       if (error) throw error;
 
-      // 3. --- TELEMETRY: LOG CREATION / PUBLISH EVENT ---
+      // 4. Telemetry
       fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId: newDeal.id, eventType: 'publish' }), 
       }).catch(() => {});
 
-      // 4. 🚀 TELEGRAM BROADCAST (Only if it's active and not pending review)
+      // 5. Broadcast
       if (dealStatus === 'active') {
         fetch('/api/telegram/broadcast', {
           method: 'POST',
@@ -185,7 +186,6 @@ export default function PostDealPage() {
         alert('Deal submitted! Because the discount is over 60%, our team will review it quickly to ensure quality. It will go live shortly.');
         router.push('/merchant/orders');
       } else {
-        // VIRAL LOOP TRIGGER: Don't route away! Show the Flyer Studio.
         setPublishedDealId(newDeal.id);
       }
 
@@ -199,7 +199,6 @@ export default function PostDealPage() {
 
   if (loading) return <div className="p-10 font-bold text-center">Verifying account status...</div>;
 
-  // --- VIRAL LOOP UI ---
   if (publishedDealId) {
     return (
       <div className="max-w-3xl mx-auto p-4 sm:p-8 text-center space-y-6 animate-in fade-in zoom-in duration-300">
@@ -224,11 +223,10 @@ export default function PostDealPage() {
     );
   }
 
-  // --- DEFAULT POST DEAL FORM ---
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-8 font-sans">
       <h1 className="text-3xl font-black text-gray-900 mb-2">Post a Physical Deal</h1>
-      <p className="text-gray-500 font-medium mb-8">List gadgets, inventory, or real estate securely.</p>
+      <p className="text-gray-500 font-medium mb-8">List gadgets, inventory, or physical items securely.</p>
       
       <form onSubmit={handleSubmit} className="space-y-8">
         
@@ -287,19 +285,23 @@ export default function PostDealPage() {
           
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2">Deal Title</label>
-            <input required type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-black outline-none transition-all font-medium" placeholder="e.g., iPhone 15 Pro Max - 256GB" />
+            <input required type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={120} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-black outline-none transition-all font-medium" placeholder="e.g., iPhone 15 Pro Max - 256GB" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-black outline-none font-medium bg-white">
-                <option value="Electronics">Electronics & Gadgets</option>
-                <option value="Fashion">Fashion & Apparel</option>
-                <option value="Home">Home & Furniture</option>
-                <option value="Real Estate">Real Estate</option>
-                <option value="Automotive">Vehicles</option>
-                <option value="Other">Other</option>
+                {/* These values MUST match the PostgreSQL Enum on your 'deals' table */}
+                <option value="tech">Tech & Electronics</option>
+                <option value="fashion">Fashion</option>
+                <option value="food">Food</option>
+                <option value="groceries">Groceries</option>
+                <option value="travel">Travel</option>
+                <option value="finance">Finance</option>
+                <option value="education">Education</option>
+                <option value="services">Services</option>
+                <option value="general">General</option>
               </select>
             </div>
           </div>
@@ -317,7 +319,7 @@ export default function PostDealPage() {
 
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2">Description & Condition</label>
-            <textarea required value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all font-medium resize-none" placeholder="Describe the item. Is it brand new in box? Used with minor scratches? Be honest to prevent escrow disputes."></textarea>
+            <textarea required value={description} onChange={e => setDescription(e.target.value)} maxLength={500} rows={4} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black outline-none transition-all font-medium resize-none" placeholder="Describe the item. Is it brand new in box? Used with minor scratches? Be honest to prevent escrow disputes."></textarea>
           </div>
         </div>
 
