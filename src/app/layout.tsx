@@ -15,7 +15,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'SlashDeals | Nigeria’s Escrow-Protected Marketplace',
   description: 'Buy and sell premium digital assets and physical goods securely. Never pay full price. Never get scammed.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://slashdeals.com.ng'),
+  metadataBase: new URL(process.env.NEXT_SITE_URL || 'https://slashdeals.com.ng'),
   openGraph: {
     title: 'SlashDeals | Buy & Sell Securely',
     description: 'The premier marketplace for Escrow-protected deals.',

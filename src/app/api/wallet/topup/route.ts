@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         email: profile?.email || user.email,
         amount: amount * 100, // Paystack uses Kobo
         reference: reference,
-        callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/merchant/wallet?topup=success`,
+        callback_url: `${process.env.NEXT_SITE_URL}/merchant/wallet?topup=success`,
         metadata: {
           transaction_type: 'wallet_topup',
           merchant_id: user.id

@@ -1943,7 +1943,7 @@ export async function POST(request: Request) {
     if (orderError) throw orderError;
 
     // SECURE REDIRECT URL (Notice we ONLY pass the order_id, never the OTP)
-    const successUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?order_id=${order.id}`;
+    const successUrl = `${process.env.NEXT_SITE_URL}/checkout/success?order_id=${order.id}`;
 
     let checkoutUrl = '';
 
@@ -2526,7 +2526,7 @@ export async function POST(request: Request) {
     const params = JSON.stringify({
       email,
       amount: amount * 100, // Paystack expects amount in kobo
-      callback_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/merchant/wallet`,
+      callback_url: `${process.env.NEXT_SITE_URL || 'http://localhost:3000'}/merchant/wallet`,
       metadata,
     });
 
@@ -2699,7 +2699,7 @@ export async function POST(request: Request) {
         email: profile?.email || user.email,
         amount: amount * 100, // Paystack uses Kobo
         reference: reference,
-        callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/merchant/wallet?topup=success`,
+        callback_url: `${process.env.NEXT_SITE_URL}/merchant/wallet?topup=success`,
         metadata: {
           transaction_type: 'wallet_topup',
           merchant_id: user.id
@@ -3042,11 +3042,11 @@ export async function POST(request: Request) {
       
       const locationName = listing_data.location_name || 'Nigeria';
       const categoryName = listing_data.category_name || 'Verified Asset';
-      const dealUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/vault/${listing_data.id}`;
+      const dealUrl = `${process.env.NEXT_SITE_URL}/vault/${listing_data.id}`;
 
       // ⚡ GENERATE THE PREMIUM FLYER
       // 'square' is the best aspect ratio for IG Grids and Telegram Previews
-      mediaUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/og/flyer?deal_id=${listing_data.id}&format=square&template=luxury`;
+      mediaUrl = `${process.env.NEXT_SITE_URL}/api/og/flyer?deal_id=${listing_data.id}&format=square&template=luxury`;
 
       // Craft the FOMO Caption (Ready to be copy/pasted to IG, TikTok, X)
       telegramCaption = `🚨 *NEW HIGH-TICKET DROP IN ${locationName.toUpperCase()}* 🚨\n\n` +
@@ -3064,7 +3064,7 @@ export async function POST(request: Request) {
       const assetCategory = escrow_data.category_name || 'Verified Asset';
       
       // ⚡ Generate a minimal "Sold" flyer for social proof
-      mediaUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/og/flyer?deal_id=${escrow_data.listing_id}&format=square&template=minimal`;
+      mediaUrl = `${process.env.NEXT_SITE_URL}/api/og/flyer?deal_id=${escrow_data.listing_id}&format=square&template=minimal`;
 
       telegramCaption = `🔒 *TRANSACTION CLEARED* 🔒\n\n` +
                         `*Volume Cleared:* ₦${escrowAmount}\n` +
@@ -8012,7 +8012,7 @@ export default function HomeFeed() {
                 👍 {deal.upvotes_count || 0}
               </span>
               <a 
-                href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_PUBLIC_SITE_URL}/deal/${deal.id}`}
+                href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_SITE_URL}/deal/${deal.id}`}
                 target="_blank" rel="noopener noreferrer"
                 className="w-7 h-7 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition-colors"
                 title="Share to WhatsApp"
@@ -8335,7 +8335,7 @@ export default function HomeFeed() {
 //                 👍 {deal.upvotes_count || 0}
 //               </span>
 //               <a 
-//                 href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_PUBLIC_SITE_URL}/deal/${deal.id}`}
+//                 href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_SITE_URL}/deal/${deal.id}`}
 //                 target="_blank" rel="noopener noreferrer"
 //                 className="w-7 h-7 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition-colors"
 //                 title="Share to WhatsApp"
@@ -8620,7 +8620,7 @@ import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { NIGERIAN_LOCATIONS, ASSET_CATEGORIES } from '@/lib/constants/taxonomy';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://slashdeals.com.ng';
+const BASE_URL = process.env.NEXT_SITE_URL || 'https://slashdeals.com.ng';
 
 // Initialize Admin Supabase to bypass RLS for sitemap generation
 const supabaseAdmin = createClient(

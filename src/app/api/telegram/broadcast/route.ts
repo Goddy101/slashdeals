@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Fire the Broadcast!
-    const dealUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/deal/${deal.id}`;
+    const dealUrl = `${process.env.NEXT_SITE_URL}/deal/${deal.id}`;
     
     await broadcastDealToTelegram({
       title,

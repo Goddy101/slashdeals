@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         email: profile?.email || user.email,
         amount: price * 100, // Paystack requires kobo/cents
-        callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/merchant/advertise/success`,
+        callback_url: `${process.env.NEXT_SITE_URL}/merchant/advertise/success`,
         metadata: {
           transaction_type: 'ad_purchase', // 🚀 Tells your webhook how to handle this
           merchant_id: user.id,

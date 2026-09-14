@@ -62,7 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
     author: {
       '@type': 'Organization',
       name: 'SlashDeals Market Intelligence',
-      url: process.env.NEXT_PUBLIC_SITE_URL || 'https://slashdeals.com.ng',
+      url: process.env.NEXT_SITE_URL || 'https://slashdeals.com.ng',
     },
   };
 

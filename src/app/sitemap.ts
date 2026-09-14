@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { NIGERIAN_LOCATIONS, ASSET_CATEGORIES } from '@/lib/constants/taxonomy';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://slashdeals.com.ng';
+const BASE_URL = process.env.NEXT_SITE_URL || 'https://slashdeals.com.ng';
 
 // Initialize Admin Supabase to bypass RLS for sitemap generation
 const supabaseAdmin = createClient(

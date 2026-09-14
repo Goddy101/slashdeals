@@ -104,7 +104,7 @@ const DealCard = ({ deal, isSpotlight }: { deal: any, isSpotlight?: boolean }) =
               👍 {deal.upvotes_count || 0}
             </span>
             <a 
-              href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_PUBLIC_SITE_URL}/deal/${deal.id}`}
+              href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_SITE_URL}/deal/${deal.id}`}
               target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()} 
               className="w-7 h-7 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition-colors"
@@ -477,7 +477,7 @@ export default function HomeFeedClient({
 //               👍 {deal.upvotes_count || 0}
 //             </span>
 //             <a 
-//               href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_PUBLIC_SITE_URL}/deal/${deal.id}`}
+//               href={`https://wa.me/?text=Check out this massive deal on SlashDeals: ₦${deal.deal_price.toLocaleString()} - ${process.env.NEXT_SITE_URL}/deal/${deal.id}`}
 //               target="_blank" rel="noopener noreferrer"
 //               onClick={(e) => e.stopPropagation()} // Prevents navigating to deal page
 //               className="w-7 h-7 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition-colors"

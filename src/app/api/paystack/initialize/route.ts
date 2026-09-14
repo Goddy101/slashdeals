@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const params = JSON.stringify({
       email,
       amount: amount * 100, // Paystack expects amount in kobo
-      callback_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/merchant/wallet`,
+      callback_url: `${process.env.NEXT_SITE_URL || 'http://localhost:3000'}/merchant/wallet`,
       metadata,
     });
 

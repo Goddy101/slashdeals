@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `🔥 ${discount}% OFF! Was ₦${deal.original_price.toLocaleString()}. Protected by SlashDeals Escrow. Sold by ${deal.profiles?.business_name || 'Verified Vendor'}.`
     : `Secure this deal for ₦${deal.deal_price.toLocaleString()} via SlashDeals Escrow. Sold by ${deal.profiles?.business_name || 'Verified Vendor'}.`;
 
-  const appUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://slashdeals.com.ng';
+  const appUrl = process.env.NEXT_SITE_URL || 'https://slashdeals.com.ng';
   
   // Use your automated Flyer Generator as the preview image!
   const ogImageUrl = `${appUrl}/api/flyer/generate?deal_id=${deal.id}&format=banner&template=flash&color=%2322C55E`;

@@ -50,9 +50,9 @@ export async function POST(request: Request) {
       const locationName = escapeHtml(listing_data.location_name || 'Nigeria');
       const categoryName = escapeHtml(listing_data.category_name || 'Verified Asset');
       const title = escapeHtml(listing_data.title || 'High-Ticket Listing');
-      const dealUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/vault/${listing_data.id}`;
+      const dealUrl = `${process.env.NEXT_SITE_URL}/vault/${listing_data.id}`;
 
-      mediaUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/og/flyer?deal_id=${listing_data.id}&format=square&template=luxury`;
+      mediaUrl = `${process.env.NEXT_SITE_URL}/api/og/flyer?deal_id=${listing_data.id}&format=square&template=luxury`;
 
       telegramCaption = `🚨 <b>NEW HIGH-TICKET DROP IN ${locationName.toUpperCase()}</b> 🚨\n\n` +
                         `<b>Asset:</b> ${title}\n` +
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       const assetCategory = escapeHtml(escrow_data.category_name || 'Verified Asset');
       const assetTitle = escapeHtml(escrow_data.title || 'Marketplace Item');
       
-      mediaUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/og/flyer?deal_id=${escrow_data.listing_id}&format=square&template=minimal`;
+      mediaUrl = `${process.env.NEXT_SITE_URL}/api/og/flyer?deal_id=${escrow_data.listing_id}&format=square&template=minimal`;
 
       telegramCaption = `🔒 <b>TRANSACTION CLEARED</b> 🔒\n\n` +
                         `<b>Asset Cleared:</b> ${assetTitle}\n` +

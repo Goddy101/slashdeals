@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       throw new Error(orderError.message);
     }
 
-    const successUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?order_id=${order.id}`;
+    const successUrl = `${process.env.NEXT_SITE_URL}/checkout/success?order_id=${order.id}`;
     let checkoutUrl = '';
 
     // 3. Initialize Paystack
